@@ -1,0 +1,7 @@
+.ansible/
+*.retry
+*~
+*.swp
+files/home/.config/gh/hosts.yml
+files/home/.ssh/
+files/home/.gnupg/

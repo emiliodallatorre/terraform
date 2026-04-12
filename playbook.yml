@@ -1,0 +1,47 @@
+---
+- name: Apply personal dotfiles
+  hosts: localhost
+  gather_facts: true
+  vars:
+    dotfiles_files:
+      - .zshrc
+      - .zprofile
+      - .zshenv
+      - .gitconfig
+      - .inputrc
+      - .vimrc
+      - .clang-format
+    dotfiles_dirs:
+      - .config/fish
+      - .config/nvim
+      - .config/zellij
+      - .config/btop
+      - .config/fastfetch
+      - .config/gh
+
+  tasks:
+    - name: Ensure parent directories for file dotfiles exist
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/{{ item | dirname }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ dotfiles_files }}"
+
+    - name: Ensure parent directories for directory dotfiles exist
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/{{ item | dirname }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ dotfiles_dirs }}"
+
+    - name: Copy file dotfiles to home
+      ansible.builtin.copy:
+        src: "home/{{ item }}"
+        dest: "{{ ansible_env.HOME }}/{{ item }}"
+      loop: "{{ dotfiles_files }}"
+
+    - name: Copy directory dotfiles to home
+      ansible.builtin.copy:
+        src: "home/{{ item }}"
+        dest: "{{ ansible_env.HOME }}/{{ item }}"
+      loop: "{{ dotfiles_dirs }}"
