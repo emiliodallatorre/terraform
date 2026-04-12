@@ -3,6 +3,46 @@
   hosts: localhost
   gather_facts: true
   vars:
+    apt_dev_packages:
+      - build-essential
+      - pkg-config
+      - cmake
+      - ninja-build
+      - gdb
+      - clang
+      - lldb
+      - make
+      - git
+      - curl
+      - wget
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - ripgrep
+      - fd-find
+      - fzf
+      - jq
+      - yq
+      - bat
+      - eza
+      - tree
+      - unzip
+      - zip
+      - xz-utils
+      - tmux
+      - zsh
+      - neovim
+      - docker.io
+      - docker-compose-v2
+      - python3
+      - python3-pip
+      - python3-venv
+      - pipx
+      - golang-go
+      - adb
+      - fastboot
+      - openjdk-17-jdk
     dotfiles_files:
       - .zshrc
       - .zprofile
@@ -20,6 +60,15 @@
       - .config/gh
 
   tasks:
+    - name: Install developer packages with apt
+      ansible.builtin.apt:
+        name: "{{ apt_dev_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 86400
+      become: true
+      when: ansible_os_family == "Debian"
+
     - name: Ensure parent directories for file dotfiles exist
       ansible.builtin.file:
         path: "{{ ansible_env.HOME }}/{{ item | dirname }}"

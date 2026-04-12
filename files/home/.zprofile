@@ -12,7 +12,4 @@ export PATH="$PATH:/home/emiliodallatorre/Documents/SDKs/flutter/bin"
 export ANDROID_HOME="$HOME/Android/Sdk"
 export PATH="$PATH:$ANDROID_HOME/platform-tools/"
 
-export PATH="$PATH:/usr/local/go/bin"
-# export PATH="$PATH:$HOME/go/bin"
-
 source $HOME/.local/bin/env
