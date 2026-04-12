@@ -3,6 +3,8 @@
   hosts: localhost
   gather_facts: true
   vars:
+    vscode_repo_keyring: /etc/apt/keyrings/packages.microsoft.gpg
+    chrome_repo_keyring: /etc/apt/keyrings/google-linux.gpg
     apt_dev_packages:
       - build-essential
       - pkg-config
@@ -13,6 +15,7 @@
       - lldb
       - make
       - git
+      - gh
       - curl
       - wget
       - ca-certificates
@@ -33,6 +36,10 @@
       - tmux
       - zsh
       - neovim
+      - shellcheck
+      - shfmt
+      - htop
+      - deluge
       - docker.io
       - docker-compose-v2
       - python3
@@ -40,6 +47,8 @@
       - python3-venv
       - pipx
       - golang-go
+      - code
+      - google-chrome-stable
       - adb
       - fastboot
       - openjdk-17-jdk
@@ -60,6 +69,60 @@
       - .config/gh
 
   tasks:
+    - name: Ensure apt keyrings directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+      become: true
+      when: ansible_os_family == "Debian"
+
+    - name: Download Microsoft apt signing key
+      ansible.builtin.get_url:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        dest: /etc/apt/keyrings/packages.microsoft.asc
+        mode: "0644"
+      become: true
+      when: ansible_os_family == "Debian"
+
+    - name: Convert Microsoft apt key to gpg format
+      ansible.builtin.command:
+        cmd: gpg --dearmor --yes --output {{ vscode_repo_keyring }} /etc/apt/keyrings/packages.microsoft.asc
+      become: true
+      changed_when: false
+      when: ansible_os_family == "Debian"
+
+    - name: Add VS Code apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by={{ vscode_repo_keyring }}] https://packages.microsoft.com/repos/code stable main"
+        filename: vscode
+        state: present
+      become: true
+      when: ansible_os_family == "Debian"
+
+    - name: Download Google Linux apt signing key
+      ansible.builtin.get_url:
+        url: https://dl.google.com/linux/linux_signing_key.pub
+        dest: /etc/apt/keyrings/google-linux.pub
+        mode: "0644"
+      become: true
+      when: ansible_os_family == "Debian"
+
+    - name: Convert Google apt key to gpg format
+      ansible.builtin.command:
+        cmd: gpg --dearmor --yes --output {{ chrome_repo_keyring }} /etc/apt/keyrings/google-linux.pub
+      become: true
+      changed_when: false
+      when: ansible_os_family == "Debian"
+
+    - name: Add Google Chrome apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by={{ chrome_repo_keyring }}] https://dl.google.com/linux/chrome/deb/ stable main"
+        filename: google-chrome
+        state: present
+      become: true
+      when: ansible_os_family == "Debian"
+
     - name: Install developer packages with apt
       ansible.builtin.apt:
         name: "{{ apt_dev_packages }}"
@@ -68,6 +131,46 @@
         cache_valid_time: 86400
       become: true
       when: ansible_os_family == "Debian"
+
+    - name: Fetch latest Obsidian release metadata
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest
+        return_content: true
+      register: obsidian_release
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_architecture in ["x86_64", "amd64"]
+
+    - name: Resolve latest Obsidian amd64 deb URL
+      ansible.builtin.set_fact:
+        obsidian_deb_url: >-
+          {{
+            obsidian_release.json.assets
+            | selectattr('name', 'search', '_amd64\\.deb$')
+            | map(attribute='browser_download_url')
+            | first
+          }}
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_architecture in ["x86_64", "amd64"]
+
+    - name: Ensure latest Obsidian deb URL was found
+      ansible.builtin.assert:
+        that:
+          - obsidian_deb_url is defined
+          - obsidian_deb_url | length > 0
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_architecture in ["x86_64", "amd64"]
+
+    - name: Install Obsidian from official deb release
+      ansible.builtin.apt:
+        deb: "{{ obsidian_deb_url }}"
+        state: present
+      become: true
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_architecture in ["x86_64", "amd64"]
 
     - name: Ensure parent directories for file dotfiles exist
       ansible.builtin.file:

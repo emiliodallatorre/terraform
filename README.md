@@ -17,5 +17,14 @@ The script is idempotent:
 - It then runs `playbook.yml` with `inventory/hosts.yml`.
 
 The playbook also installs a Debian/Ubuntu developer package baseline via
-`ansible.builtin.apt` (including Docker and `golang-go`), so it will prompt for
-sudo/become permissions when needed.
+`ansible.builtin.apt` (including Docker, `golang-go`, `gh`, `shellcheck`, `shfmt`,
+`htop`, `deluge`, VS Code, and Google Chrome), so it will prompt for sudo/become
+permissions when needed.
+
+Obsidian is installed from the latest official GitHub release `.deb`.
+
+Copilot can be added later, after `gh` is installed:
+
+```bash
+gh extension install github/gh-copilot
+```
