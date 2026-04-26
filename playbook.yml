@@ -136,6 +136,9 @@
       ansible.builtin.uri:
         url: https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest
         return_content: true
+        headers:
+          User-Agent: Ansible
+          Accept: application/vnd.github+json
       register: obsidian_release
       when:
         - ansible_os_family == "Debian"
@@ -146,9 +149,10 @@
         obsidian_deb_url: >-
           {{
             obsidian_release.json.assets
-            | selectattr('name', 'search', '_amd64\\.deb$')
+            | selectattr('name', 'search', '_amd64[.]deb$')
             | map(attribute='browser_download_url')
-            | first
+            | list
+            | first | default('')
           }}
       when:
         - ansible_os_family == "Debian"
@@ -163,9 +167,18 @@
         - ansible_os_family == "Debian"
         - ansible_architecture in ["x86_64", "amd64"]
 
+    - name: Download Obsidian deb package
+      ansible.builtin.get_url:
+        url: "{{ obsidian_deb_url }}"
+        dest: /tmp/obsidian_amd64.deb
+        mode: "0644"
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_architecture in ["x86_64", "amd64"]
+
     - name: Install Obsidian from official deb release
       ansible.builtin.apt:
-        deb: "{{ obsidian_deb_url }}"
+        deb: /tmp/obsidian_amd64.deb
         state: present
       become: true
       when:
