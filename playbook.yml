@@ -136,6 +136,9 @@
       ansible.builtin.uri:
         url: https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest
         return_content: true
+        headers:
+          User-Agent: Ansible
+          Accept: application/vnd.github+json
       register: obsidian_release
       when:
         - ansible_os_family == "Debian"
@@ -146,9 +149,10 @@
         obsidian_deb_url: >-
           {{
             obsidian_release.json.assets
-            | selectattr('name', 'search', '_amd64\\.deb$')
+            | selectattr('name', 'search', '_amd64[.]deb$')
             | map(attribute='browser_download_url')
-            | first
+            | list
+            | first | default('')
           }}
       when:
         - ansible_os_family == "Debian"
